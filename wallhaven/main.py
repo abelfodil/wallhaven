@@ -1,0 +1,2 @@
+class Wallhaven:
+    pass

@@ -1,0 +1,4 @@
+.venv
+wallhaven.egg-info
+.vscode
+wallhaven/__pycache__
