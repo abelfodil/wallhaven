@@ -8,3 +8,7 @@ class ApiKeyError(Exception):
 
 class PageNotFoundError(Exception):
     pass
+
+
+class InvalidOptionError(Exception):
+    pass

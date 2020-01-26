@@ -3,7 +3,7 @@ from typing import Union
 
 import requests
 
-from exceptions import *
+from wallhaven.exceptions import *
 
 
 class Wallhaven:
@@ -12,9 +12,8 @@ class Wallhaven:
     WALLPAPER_URL = BASE_URL + "w/"  # + wallpaper ID
     TAG_URL = BASE_URL + "tag/"  # + tag id
     SETTINGS_URL = BASE_URL + "settings"  # ?apikey
-    COLLECTIONS_URL = (
-        BASE_URL + "collections/"
-    )  # apikey (for self) or usename (for other users)
+    COLLECTIONS_URL = BASE_URL + "collections/"  # apikey or usename
+    SEARCH_URL = BASE_URL + "search/"
 
     def __init__(self, api_key=None):
         self.api_key = api_key
@@ -103,3 +102,15 @@ class Wallhaven:
 
         return response.json()["data"]
 
+    def search(self, options) -> json:
+        """ Search wallpapers using options' parameters. """
+        params = options.get_params()
+        if self.api_key is not None:
+            params["apikey"] = self.api_key
+
+        response = self._request(self.SEARCH_URL, params=params, timeout=10)
+        if not response.ok:
+            raise RequestError("Error: " + str(response.status_code))
+
+        # Return an empty list if API key is invalid (or missing) and NSFW is set to True.
+        return response.json()["data"]
