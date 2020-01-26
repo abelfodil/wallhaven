@@ -4,3 +4,7 @@ class RequestError(Exception):
 
 class ApiKeyError(Exception):
     pass
+
+
+class PageNotFoundError(Exception):
+    pass
