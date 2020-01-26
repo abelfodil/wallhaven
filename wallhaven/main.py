@@ -1,5 +1,5 @@
 import json
-from typing import Union
+from typing import Union, Dict, List
 
 import requests
 
@@ -7,6 +7,15 @@ from wallhaven.exceptions import *
 
 
 class Wallhaven:
+    """
+    A Python wrapper around the Wallhaven API.
+    
+    Sample usage: 
+    from wallhaven import Wallhaven
+    
+    wallhaven = Wallhaven()
+    data = wallhaven.get_wallpaper_info(wallpaper_id)
+    """
 
     BASE_URL = "https://wallhaven.cc/api/v1/"
     WALLPAPER_URL = BASE_URL + "w/"  # + wallpaper ID
@@ -22,7 +31,7 @@ class Wallhaven:
     def _request(url, **kwargs) -> requests.Response:
         return requests.get(url, **kwargs)
 
-    def get_wallpaper_info(self, wallpaper_id: Union[str, int]) -> json:
+    def get_wallpaper_info(self, wallpaper_id: Union[str, int]) -> Dict:
         """ Return wallpaper metadata in JSON format. 
         @param wallpaper_id: Wallpaper ID in a string format. Example: 'r25peq'
         """
@@ -42,7 +51,7 @@ class Wallhaven:
 
         return response.json()["data"]
 
-    def get_tag_info(self, tag_id: Union[str, int]) -> json:
+    def get_tag_info(self, tag_id: Union[str, int]) -> Dict:
         """ Return tag metadata in JSON format. 
         @param tag_id: Tag id. 
         """
@@ -57,7 +66,7 @@ class Wallhaven:
 
         return response.json()["data"]
 
-    def get_user_settings(self) -> json:
+    def get_user_settings(self) -> Dict:
         """ Return user settings in a JSON format. An API key must be provided."""
         if self.api_key is None:
             raise ApiKeyError("Missing API key")
@@ -71,7 +80,7 @@ class Wallhaven:
 
         return response.json()["data"]
 
-    def get_collection_from_username(self, username: str) -> json:
+    def get_collection_from_username(self, username: str) -> Dict:
         """ Return user's public collection in JSON format. 
         @param username: Collection's owner.
         """
@@ -85,7 +94,7 @@ class Wallhaven:
 
         return response.json()["data"]
 
-    def get_collection_from_apikey(self) -> json:
+    def get_collection_from_apikey(self) -> Dict:
         """ Return user collection in JSON format. 
         An API key must be provided for this to work.
         """
@@ -102,9 +111,13 @@ class Wallhaven:
 
         return response.json()["data"]
 
-    def search(self, options) -> json:
-        """ Search wallpapers using options' parameters. """
-        params = options.get_params()
+    def search(
+        self, params: Union[Dict[str, str], "wallhaven.search.Parameters"]
+    ) -> Dict:
+        """ Search wallpapers using the user's defined parameters. """
+        if not isinstance(params, dict):
+            params = params.get_params()
+
         if self.api_key is not None:
             params["apikey"] = self.api_key
 
@@ -114,3 +127,4 @@ class Wallhaven:
 
         # Return an empty list if API key is invalid (or missing) and NSFW is set to True.
         return response.json()["data"]
+
