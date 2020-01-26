@@ -1,9 +1,10 @@
 [tool.poetry]
 name = "wallhaven"
-version = "0.5.0"
+version = "0.5.1"
 description = "A Python wrapper around the Wallhaven API."
 authors = ["Lucas Cavalcante da Silva <silva.lucasdev@gmail.com>"]
 license = "MIT"
+readme = "README.md"
 
 [tool.poetry.dependencies]
 python = "^3.6"
