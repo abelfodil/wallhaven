@@ -1,10 +1,16 @@
 [tool.poetry]
 name = "wallhaven"
-version = "0.5.1"
+version = "0.5.2"
 description = "A Python wrapper around the Wallhaven API."
 authors = ["Lucas Cavalcante da Silva <silva.lucasdev@gmail.com>"]
 license = "MIT"
 readme = "README.md"
+homepage = "https://github.com/lucasc-silva/wallhaven"
+repository = "https://github.com/lucasc-silva/wallhaven"
+keywords = ["wallhaven", "wallpapers", "image"]
+include = [
+    "LICENSE",
+]
 
 [tool.poetry.dependencies]
 python = "^3.6"
