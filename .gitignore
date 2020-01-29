@@ -2,3 +2,5 @@
 wallhaven.egg-info
 .vscode
 wallhaven/__pycache__
+wallhaven/.mypy_cache
+dist/
