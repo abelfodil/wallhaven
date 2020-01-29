@@ -10,5 +10,5 @@ class PageNotFoundError(Exception):
     pass
 
 
-class InvalidOptionError(Exception):
+class OptionError(Exception):
     pass
