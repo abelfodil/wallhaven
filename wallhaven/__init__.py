@@ -1,5 +1,5 @@
 __author__ = "Lucas Cavalcante da Silva <silva.lucasdev@gmail.com>"
-__version__ = "0.6.0"
+__version__ = "0.6.1"
 # Use of this source code is governed by the MIT license.
 __license__ = "MIT"
 
