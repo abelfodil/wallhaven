@@ -5,9 +5,9 @@ description = "A Python wrapper around the Wallhaven API."
 authors = ["Lucas Cavalcante da Silva <silva.lucasdev@gmail.com>"]
 license = "MIT"
 readme = "README.md"
-homepage = "https://github.com/lucasc-silva/wallhaven"
-repository = "https://github.com/lucasc-silva/wallhaven"
-keywords = ["wallhaven", "wallpapers", "image"]
+homepage = "https://github.com/lucasshiva/wallhaven"
+repository = "https://github.com/lucasshiva/wallhaven"
+keywords = ["wallhaven", "wallpapers", "images", "python3", "api"]
 include = [
     "LICENSE",
 ]
