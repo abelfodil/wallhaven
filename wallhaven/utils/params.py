@@ -1,32 +1,49 @@
-from typing import List
+from typing import List, Dict
 
 
-def prepare_tags(operation: str, tags: List[str]) -> List[str]:
+def make_query(filters: Dict) -> str:
     """
-        Add `operation` to the beginning of each item in `tags`.
+        Get all filters set by the user and puts them in
+        the right order in a string.
+
+        :param filters: A dictionary with filters defined
+        in the `Parameters` class.
     """
-    prepared = []
-    for tag in tags:
-        if tag[0] == operation:
-            prepared.append(tag)
-        else:
-            prepared.append(operation + tag)
-    return prepared
+    query = ""
+
+    # Check tags
+    if filters["id"]:  # Search by exact tag.
+        query += "id:" + filters["id"]
+    else:
+        for tag in filters["tags"]["excluded"]:
+            query += "-" + tag
+        for tag in filters["tags"]["included"]:
+            query += "+" + tag
+
+    # Check keyword
+    if filters["keyword"]:
+        query += filters["keyword"]
+
+    # Check user.
+    if filters["username"]:
+        query += " @" + filters["username"]
+
+    # Check file type
+    if filters["type"]:
+        query += " type:" + filters["type"]
+
+    # Check for similar images.
+    if filters["like"]:
+        query += " like:" + filters["like"]
+
+    return query
 
 
-def create_search_query(include: List[str], exclude: List[str]) -> str:
+def get_str_from_bool(values: List[bool]) -> str:
     """
-        Create search query using the included and excluded tags.
+        Return a string from a list of booleans.
+        [True, True, False] -> "110"
+
+        :param values: List of booleans.
     """
-
-    # Prepare tags. Add signs (+ or -) to them.
-    include = prepare_tags("+", include)
-    exclude = prepare_tags("-", exclude)
-
-    # Merge tags. Excluded tags must at the beginning.
-    tags = exclude + include
-
-    # Sort and reverse list before returning.
-    # This ensures the excluded tags will be at the beginning of the list.
-    # Returns a string containing all the tags.
-    return "".join(sorted(tags, reverse=True))
+    return "".join(str(int(value)) for value in values)

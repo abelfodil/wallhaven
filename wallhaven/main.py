@@ -4,6 +4,7 @@ import requests
 
 from .exceptions import ApiKeyError, PageNotFoundError
 from .params import Parameters
+from .utils.colors import RED, CLEAR
 
 
 class Wallhaven:
@@ -15,6 +16,7 @@ class Wallhaven:
 
         wallhaven = Wallhaven()
         data = wallhaven.get_wallpaper_info(wallpaper_id)
+        ...
     """
 
     BASE_URL = "https://wallhaven.cc/api/v1/"
@@ -54,19 +56,17 @@ class Wallhaven:
         response = self._request(url, timeout=10)
 
         # Unauthorized. API key is wrong or inexistent.
-        # If user is unauthorized, is either because he tried to access
-        # something without an API key, or the API key is not valid.
+        # If user is unauthorized, they tried to access
+        # something without an API key or the API key is not valid.
         if response.status_code == 401:
             if self.api_key is None:
-                raise ApiKeyError(
-                    "ERROR! -> You need an API key to access NSFW wallpapers."
-                )
-            raise ApiKeyError("ERROR! -> Invalid API key.")
+                raise ApiKeyError(f"{RED}Missing API key{CLEAR}")
+            raise ApiKeyError(f"{RED}Invalid API key{CLEAR}")
 
         # Return data
         return response.json()["data"]
 
-    def get_tag_info(self, tag_id: str) -> Dict:
+    def get_tag_info(self, tag_id: Union[str, int]) -> Dict:
         """
             Return tag metadata from `tag_id`.
 
@@ -74,16 +74,20 @@ class Wallhaven:
         """
 
         # Only allow strings
-        if not isinstance(tag_id, str):
-            raise TypeError(f"ERROR! -> Expected type `str`. Found: {type(tag_id)}")
+        if not isinstance(tag_id, str) or not isinstance(tag_id, int):
+            raise TypeError(f"{RED}Invalid type for argument 'tag_id'{CLEAR}")
+
+        tag_id = str(tag_id)
+        if not tag_id.isnumeric():
+            raise ValueError(f"{RED}'tag_id' must be a numeric value{CLEAR}")
 
         # Format URL and make a request.
-        url = self.TAG_URL + str(tag_id)
+        url = self.TAG_URL + tag_id
         response = self._request(url, timeout=10)
 
         # Tag ID doesn't exist.
         if response.status_code == 404:
-            raise PageNotFoundError("ERROR! -> Tag does not exist.")
+            raise PageNotFoundError(f"{RED}Tag not found{CLEAR}")
 
         # Return data
         return response.json()["data"]
@@ -95,9 +99,9 @@ class Wallhaven:
 
         # Check if API key exists.
         if self.api_key is None:
-            raise ApiKeyError("ERROR! -> Missing API key")
+            raise ApiKeyError(f"{RED}Missing API key{CLEAR}")
 
-        # Add key to `params`.
+        # Create params with only the API key.
         params = {"apikey": self.api_key}
 
         # Request url.
@@ -105,7 +109,7 @@ class Wallhaven:
 
         # Page is not found if API key is INVALID.
         if response.status_code == 404:
-            raise ApiKeyError("ERROR! -> API key is not valid!")
+            raise ApiKeyError(f"{RED}Invalid API key{CLEAR}")
 
         # Return data if no errors occurred.
         return response.json()["data"]
@@ -123,7 +127,7 @@ class Wallhaven:
 
         # Invalid username.
         if response.status_code == 404:
-            raise PageNotFoundError("ERROR! -> Invalid username.")
+            raise PageNotFoundError(f"{RED}Invalid username{CLEAR}")
 
         # Return data if no errors occurred.
         return response.json()["data"]
@@ -135,7 +139,7 @@ class Wallhaven:
 
         # Check if API key exists.
         if self.api_key is None:
-            raise ApiKeyError("ERROR! -> Missing API key.")
+            raise ApiKeyError(f"{RED}Missing API key{CLEAR}")
 
         # Add key to `params`.
         params = {"apikey": self.api_key}
@@ -143,7 +147,7 @@ class Wallhaven:
 
         # Unauthorized if API key is not valid.
         if response.status_code == 401:
-            raise ApiKeyError("ERROR! -> Invalid API key.")
+            raise ApiKeyError(f"{RED}Invalid API key{CLEAR}")
 
         # Return data if no errors occurred.
         return response.json()["data"]
@@ -160,27 +164,25 @@ class Wallhaven:
         """
 
         if not isinstance(username, str):
-            raise TypeError(
-                f"ERROR! -> Invalid username. Expected type `str`. Found: {type(username)}"
-            )
+            raise TypeError(f"{RED}Invalid type for argument 'username'{CLEAR}")
 
         if not isinstance(collection_id, int) and not isinstance(collection_id, str):
-            raise TypeError(
-                f"ERROR! -> Invalid collection id. Expected type `str` or `int`. Found: {type(collection_id)}"
-            )
+            raise TypeError(f"{RED}Invalid type for argument 'collection_id'{CLEAR}")
 
         if not isinstance(limit, int):
-            raise TypeError(
-                f"ERROR! -> Invalid limit. Expected type `int`. Found: {type(limit)}"
-            )
+            raise TypeError(f"{RED}Invalid type for argument 'limit'{CLEAR}")
+
+        collection_id = str(collection_id)
+        if not collection_id.isnumeric():
+            raise ValueError(f"{RED}'collection_id' must be a numeric value!{CLEAR}")
 
         # Format URL. Default page is 1.
-        url = self.COLLECTIONS_URL + username + "/" + str(collection_id)
+        url = self.COLLECTIONS_URL + username + "/" + collection_id
         response = self._request(url, timeout=10)
 
         # User not found;
         if response.status_code == 404:
-            raise PageNotFoundError("ERROR! -> User not found.")
+            raise PageNotFoundError(f"{RED}User not found{CLEAR}")
 
         # Get list of wallpapers.
         data = response.json()["data"]
@@ -228,7 +230,7 @@ class Wallhaven:
         # Return amount of wallpapers.
         return wallpapers
 
-    def search(self, parameters: Union[Dict[str, str], Parameters]) -> Dict:
+    def search(self, parameters: Parameters) -> Dict:
         """
             Search wallpapers using the defined parameters.
 
@@ -238,14 +240,11 @@ class Wallhaven:
         # Search only works with a dictionary of parameters.
 
         # Check if `parameters` is not a dict.
-        if not isinstance(parameters, dict) and isinstance(parameters, Parameters):
-            # Get a dictionary with parameters.
-            # Also possible to use `parameters.params`.
-            params = parameters.get_params()
-        elif not isinstance(parameters, Parameters):
-            raise TypeError(
-                f"ERROR! -> Invalid parameters. Expected type `Dict` or `Parameters`. Found: {type(parameters)}"
-            )
+        if not isinstance(parameters, Parameters):
+            raise TypeError(f"{RED}Invalid type for argument 'parameters'")
+
+        # Get params.
+        params = parameters.get_params()
 
         # Check if API key exists.
         if self.api_key is not None:
