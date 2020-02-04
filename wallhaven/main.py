@@ -2,8 +2,8 @@ from typing import Union, Dict, List
 
 import requests
 
-from wallhaven.exceptions import ApiKeyError, PageNotFoundError
-from wallhaven.params import Parameters
+from .exceptions import ApiKeyError, PageNotFoundError
+from .params import Parameters
 
 
 class Wallhaven:
