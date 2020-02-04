@@ -1,6 +1,5 @@
 from typing import Union, Dict, Iterable
 
-from wallhaven.exceptions import OptionError
 from .utils.params import create_search_query
 
 
@@ -75,7 +74,7 @@ class Parameters:
 
         # Check if the user chose at least one category.
         if not any(categories):
-            raise OptionError("At least one (1) category must be included.")
+            raise ValueError("At least one (1) category must be included.")
 
         # Convert category to "1" or "0".
         category_string = "".join([str(int(category)) for category in categories])
@@ -114,7 +113,7 @@ class Parameters:
 
         # Check if the user chose at least one purity.
         if not any(purity_list):
-            raise OptionError("ERROR! -> At least one (1) purity must be included.")
+            raise ValueError("ERROR! -> At least one (1) purity must be included.")
 
         # Convert purity to "1" and "0".
         purity_string = "".join([str(int(purity)) for purity in purity_list])
@@ -159,7 +158,7 @@ class Parameters:
 
         # Check for exact matches.
         if sorting not in available_sortings:
-            raise OptionError("ERROR! -> Invalid sorting: " + sorting)
+            raise ValueError("ERROR! -> Invalid sorting: " + sorting)
 
         self.params["sorting"] = sorting
 
@@ -205,7 +204,7 @@ class Parameters:
             if top_range == value:
                 break
         else:
-            raise OptionError(f"ERROR! -> Invalid range: {top_range}")
+            raise ValueError(f"ERROR! -> Invalid range: {top_range}")
 
         self.params["topRange"] = top_range
 
@@ -236,7 +235,7 @@ class Parameters:
 
         # Runs if `order` is not in the mapping.
         else:
-            raise OptionError(f"ERROR! -> Invalid order: {order}")
+            raise ValueError(f"ERROR! -> Invalid order: {order}")
 
         # Set the order if nothing went wrong.
         self.params["order"] = order
@@ -334,7 +333,7 @@ class Parameters:
 
         # Check if `tags` if empty.
         if not tags:
-            raise OptionError(f"Can't include tags from: {tags}")
+            raise ValueError(f"Can't include tags from: {tags}")
 
         # Add tags to filters.
         for tag in tags:
@@ -361,7 +360,7 @@ class Parameters:
 
         # Check if `tags` is empty.
         if not tags:
-            raise OptionError(f"Can't exclude tags from: {tags}")
+            raise ValueError(f"Can't exclude tags from: {tags}")
 
         # Add tags to filters.
         for tag in tags:
@@ -390,7 +389,7 @@ class Parameters:
 
         # Check if `username` is only white spaces.
         if not username:
-            raise OptionError("ERROR! -> Username cannot be blank.")
+            raise ValueError("ERROR! -> Username cannot be blank.")
 
         # End with space to allow more filters.
         self.params["q"] += f"@{username} "
