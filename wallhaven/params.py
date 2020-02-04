@@ -1,6 +1,7 @@
 from typing import Union, Dict, Iterable
 
 from wallhaven.exceptions import OptionError
+from .utils.params import create_search_query
 
 
 class Parameters:
@@ -19,6 +20,11 @@ class Parameters:
     def __init__(self):
         # Reset parameters.
         self.reset_params()
+
+        # Search filters.
+        self.filters = {
+            "tags": {"included": [], "excluded": []},
+        }
 
     def reset_params(self):
         """
@@ -270,7 +276,7 @@ class Parameters:
             +tag1 +tag2 -> Must have tag1 and tag2.
             +tag1 -tag2 -> Must have tag1 and NOT tag2.
             @username -> User uploads
-            id:123 -> Exact tag search (cannot be used with +tag and/or -tag)
+            id:123 -> Exact tag search
             type:{png/jpg} -> Search for file type (jpg = jpeg)
             like:<wallpaper-id> -> Find wallpaper with similar tags.
         """
@@ -278,7 +284,42 @@ class Parameters:
         if not isinstance(query, str):
             raise TypeError(f"Expected `str`. Found: {type(query)}")
 
-        self.params["q"] = query
+        # Searching for a keyword is the same as searching for a tag.
+        # Here we loop through each word and check if the user
+        # wants to add or exclude them.
+        # If there's a plus sign preceding the word, include it.
+        # Else, exclude it.
+
+        # Split words on spaces.
+        # Stores them in a dictionary of tags.
+        for word in query.split(" "):
+            # By default, a word with no signal is the same as
+            # including a tag.
+            if word[0] not in ["+", "-"]:
+                self.filters["tags"]["included"].append(word.lower())
+            elif word[0] == "+":
+                self.filters["tags"]["included"].append(word.lower())
+            else:
+                self.filters["tags"]["excluded"].append(word.lower())
+
+        # Get tags
+        include = self.filters["tags"]["included"]
+        exclude = self.filters["tags"]["excluded"]
+
+        # Set search query
+        self.params["q"] = create_search_query(include, exclude)
+
+    def clear_search_query(self) -> None:
+        """
+            Clear search query, including tags and other filters.
+        """
+
+        # Reset search query
+        self.params["q"] = ""
+
+        # Reset tags
+        self.filters["tags"]["included"].clear()
+        self.filters["tags"]["excluded"].clear()
 
     def include_tags(self, tags: Iterable[str]) -> None:
         """
@@ -295,21 +336,17 @@ class Parameters:
         if not tags:
             raise OptionError(f"Can't include tags from: {tags}")
 
+        # Add tags to filters.
         for tag in tags:
-            # End with white space to allow more filters.
-            tag = f"+{tag} ".lower()
+            if tag.lower() not in self.filters["tags"]["included"]:
+                self.filters["tags"]["included"].append(tag.lower())
 
-            # Don't allow duplicates.
-            if tag not in self.params["q"]:
+        # Get tags
+        include = self.filters["tags"]["included"]
+        exclude = self.filters["tags"]["excluded"]
 
-                # Check if the end of the search query is a white space or not.
-                # This avoids tags sticking together.
-                # Example: Query: +anime+music
-                # This only happens if the user added the tags from `set_search_query`
-                if not self.params["q"][0] == "":
-                    self.params["q"] += f" {tag}"
-                else:
-                    self.params["q"] += tag
+        # Set tags to search query.
+        self.params["q"] = create_search_query(include, exclude)
 
     def exclude_tags(self, tags: Iterable[str]) -> None:
         """
@@ -326,23 +363,17 @@ class Parameters:
         if not tags:
             raise OptionError(f"Can't exclude tags from: {tags}")
 
-        # Add tag to search query.
+        # Add tags to filters.
         for tag in tags:
-            # End with white space to allow more filters.
-            tag = f"-{tag} ".lower()
+            if tag.lower() not in self.filters["tags"]["excluded"]:
+                self.filters["tags"]["excluded"].append(tag.lower())
 
-            # Don't allow duplicates
-            if tag not in self.params["q"]:
+        # Get tags
+        include = self.filters["tags"]["included"]
+        exclude = self.filters["tags"]["excluded"]
 
-                # Check if the end of the search query is a white space or not.
-                # This avoids tags sticking together.
-                # Example: Query: +anime+music
-                # This only happens if the user added the tags from `set_search_query`
-                if not self.params["q"][0] == "":
-                    self.params["q"] += f" {tag}"
-                else:
-                    self.params["q"] += tag
-                self.params["q"] += tag
+        # Set tags to search query.
+        self.params["q"] = create_search_query(include, exclude)
 
     def filter_wallpapers_by_user(self, username: str) -> None:
         """
