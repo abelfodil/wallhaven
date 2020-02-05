@@ -44,12 +44,17 @@ class Wallhaven:
         with requests.Session() as session:
             return session.get(url, **kwargs)
 
-    def get_wallpaper_info(self, wallpaper_id: Union[str, int]) -> Dict:
+    def get_wallpaper_info(
+        self, wallpaper_id: str
+    ) -> Dict[str, Union[str, int, Dict[str, str], List[str], List[Dict[str, str]]]]:
         """
             Return wallpaper metadata from `wallpaper_id`
 
             :param wallpaper_id: Wallpaper ID in a string format.
         """
+        if not isinstance(wallpaper_id, str):
+            raise TypeError(f"{RED}Invalid type for argument 'wallpaper_id'{CLEAR}")
+
         url = self.WALLPAPER_URL + str(wallpaper_id)
 
         # Request url.
@@ -66,7 +71,7 @@ class Wallhaven:
         # Return data
         return response.json()["data"]
 
-    def get_tag_info(self, tag_id: Union[str, int]) -> Dict:
+    def get_tag_info(self, tag_id: Union[str, int]) -> Dict[str, str]:
         """
             Return tag metadata from `tag_id`.
 
@@ -74,7 +79,7 @@ class Wallhaven:
         """
 
         # Only allow strings
-        if not isinstance(tag_id, str) or not isinstance(tag_id, int):
+        if not isinstance(tag_id, str) and not isinstance(tag_id, int):
             raise TypeError(f"{RED}Invalid type for argument 'tag_id'{CLEAR}")
 
         tag_id = str(tag_id)
@@ -92,7 +97,7 @@ class Wallhaven:
         # Return data
         return response.json()["data"]
 
-    def get_user_settings(self) -> Dict:
+    def get_user_settings(self) -> Dict[str, Union[str, List[str]]]:
         """
             Return user settings. A valid API key must be provided.
         """
@@ -114,12 +119,16 @@ class Wallhaven:
         # Return data if no errors occurred.
         return response.json()["data"]
 
-    def get_collections_from_username(self, username: str) -> List:
+    def get_collections_from_username(
+        self, username: str
+    ) -> List[Dict[str, Union[str, int]]]:
         """
             Return user's public collection from `username`.
 
             :param username: Collection's owner.
         """
+        if not isinstance(username, str):
+            raise TypeError(f"{RED}Invalid type for argument 'username'{CLEAR}")
 
         # Format URL and make request.
         url = self.COLLECTIONS_URL + str(username)
@@ -132,7 +141,7 @@ class Wallhaven:
         # Return data if no errors occurred.
         return response.json()["data"]
 
-    def get_collections_from_apikey(self) -> List:
+    def get_collections_from_apikey(self) -> List[Dict[str, Union[str, int]]]:
         """
             Return user collection. A valid API key must be provided.
         """
@@ -152,9 +161,9 @@ class Wallhaven:
         # Return data if no errors occurred.
         return response.json()["data"]
 
-    def get_wallpapers_from_user_collection(
+    def get_wallpapers_from_collection(
         self, username: str, collection_id: Union[int, str], limit: int = 0
-    ) -> List:
+    ) -> List[Dict[str, Union[str, List[str], Dict[str, str]]]]:
         """
             Return wallpapers from a user's collection.
 
@@ -230,7 +239,9 @@ class Wallhaven:
         # Return amount of wallpapers.
         return wallpapers
 
-    def search(self, parameters: Parameters) -> Dict:
+    def search(
+        self, parameters: Parameters
+    ) -> List[Dict[str, Union[str, List[str], Dict[str, str]]]]:
         """
             Search wallpapers using the defined parameters.
 

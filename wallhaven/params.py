@@ -61,7 +61,7 @@ class Parameters:
         """
         return self.params
 
-    def get_filters(self) -> Dict[str, Union[str, Dict[str, List]]]:
+    def get_filters(self) -> Dict[str, Union[str, Dict[str, List[str]]]]:
         """
            Return the current filters
         """
@@ -328,7 +328,7 @@ class Parameters:
         # self.params["q"] = create_search_query(include, exclude)
         self.params["q"] = make_query(self.filters)
 
-    def clear_search_query(self, clean_filters=False) -> None:
+    def clear_search_query(self, clean_filters: bool = False) -> None:
         """
             Clear search query. May also clear filters.
         """
@@ -339,7 +339,7 @@ class Parameters:
 
         # Reset filters
         if clean_filters:
-            self.filters.clear()
+            self.reset_filters()
 
     def include_tags(self, tags: List[str]) -> None:
         """
@@ -387,7 +387,7 @@ class Parameters:
         # Set tags to search query.
         self.params["q"] = make_query(self.filters)
 
-    def filter_wallpapers_by_user(self, username: str) -> None:
+    def filter_by_user(self, username: str) -> None:
         """
             Only returns images by `username`.
 
