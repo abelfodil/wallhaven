@@ -12,21 +12,17 @@ pip install wallhaven
 from wallhaven import Wallhaven
 
 # Instanciate it.
-wallhaven = Wallhaven()
-
-# An API key is needed for some operations.
-# Use one by passing it to the constructor.
-wallhaven = Wallhaven(api_key=api_key) 
+# For some operations, an API key must be provided.
+wallhaven = Wallhaven(api_key)
 
 # Get wallpaper metadata
 data = wallhaven.get_wallpaper_info(wallpaper_id="r25peq") # Example id
 
 # Get tag metadata
-data = wallhaven.get_tag_info(tag_id=1)
+data = wallhaven.get_tag_info(tag_id=tag_id)
 
 # Get user settings.
 # An API key must be provided.
-wallhaven = Wallhaven(api_key=user_api_key)
 data = wallhaven.get_user_settings()
 
 # Get the user's public collection
@@ -35,6 +31,11 @@ data = wallhaven.get_collection_from_username(username=username)
 # Get the user's public and private collection.
 # An API key must be provided.
 data = wallhaven.get_collection_from_apikey()
+
+# Get wallpapers from a user's collection.
+# By default, this will return ALL wallpapers.
+# You can specify a limit.
+data = wallhaven.get_wallpapers_from_collection(username, collection_id, limit=25)
 ```
 
 Example of data returned from `wallhaven.get_wallpaper_info('r25peq')`
@@ -113,66 +114,42 @@ Example of data returned from `wallhaven.get_wallpaper_info('r25peq')`
 ## Search
 You can also search for wallpapers.
 ```python
-from wallhaven import Wallhaven
-from wallhaven.search import Parameters
+from wallhaven import Wallhaven, Parameters
 
 # API key is only needed for NSFW images.
-wallhaven = Wallhaven(api_key=api_key)
+wallhaven = Wallhaven()
 
 # Choose parameters for the wallpapers.
 params = Parameters()
 params.set_categories(general=True, anime=True, people=False)
-params.set_sorting("toplist")
-params.set_range("Last Three Days")
+params.set_sorting("Toplist")
+params.set_range("Last Three Days") # or set_range("3d")
 
 # Search for keywords
 params.set_search_query("Music")
 
+# Filter tags
+params.include_tags(["guitar"])
+params.exclude_tags(["car"])
+
+# Filter by user
+params.filter_by_user(username)
+
 # Search for wallpapers using chosen parameters.
-# You can use the instance directly
 data = wallhaven.search(params=params)
-
-# Use the 'get_params' method from Parameters, which returns a dictionary with the current parameters.
-data = wallhaven.search(params.get_params())
-
-# Or a custom dictionary.
-data = wallhaven.search(
-  {
-    "categories": "110",
-    "purity": "100",
-    "sorting": "toplist",
-    "topRange": "3d",
-    "q": "Music"
-  }
-)
 ```
 
-This will return a list of wallpapers (24 per page) metadata. Something like:
-```json
-[
-    {
-        "id": <wall_id>,
-        "category": <wall_category>,
-        "path": <path>,
-        ...
-    },
-    {
-        "id": <wall_id>,
-        "category": <wall_category>,
-        "path": <path>,
-        ...
-    }
-]
-```
+Each page contains 24 wallpapers.
+Search will return a list of dictionaries with the wallpapers' metadata.
 
 **Default parameters:**
 - **Categories:** General, Anime, and People.
 - **Purity:** SFW
 - **Sorting:** Date Added
-- **Range**: Last Month
+- **Range**: Last Month  (Ignored if 'Sorting' is not "Toplist")
 - **Order**: Descending
 - **Page**: 1
-
+  
 For more information about the API, visit the [official documentation](https://wallhaven.cc/help/api).
 
 # Methods
@@ -180,24 +157,37 @@ For more information about the API, visit the [official documentation](https://w
 
 - `def __init__(self, api_key=None)`  
 - `def _request(self, url, **kwargs) -> requests.Response`  
-- `def get_wallpaper_info(self, wallpaper_id: Union[str, int]) -> Dict`  
-- `def get_tag_info(self, tag_id: Union[str, int]) -> Dict`  
-- `def get_user_settings(self) -> Dict`
+- `def get_wallpaper_info(self, wallpaper_id: Union[str, int]) -> Dict[str, Union[str, int, Dict[str, str], List[str], List[Dict[str, str]]]]`
+- `def get_tag_info(self, tag_id: Union[str, int]) -> Dict[str, str]` 
+- `def get_user_settings(self) -> Dict[str, Union[str, List[str]]]`
   - An API key must be provided.  
-- `def_get_collection_from_username(self, username: str) -> Dict`
-- `def get_collection_from_apikey(self) -> Dict `
+- `def_get_collection_from_username(self, username: str) -> List[Dict[str, Union[str, int]]]`
+- `def get_collection_from_apikey(self) -> List[Dict[str, Union[str, int]]]`
   - An API key must be provided.
-- `def search(self, params: Dict[str, str]) -> Dict`
+- `def search(self, params: Dict[str, str]) -> List[Dict[str, Union[str, List[str], Dict[str, str]]]]`
   - An API key must be provided (Only for NSFW wallpapers).
 
 ### Class `Parameters`
+
 - `def __init__(self)`  
-- `def defaultParameters(self) -> None`
+- `def reset_parameters(self) -> None`
+  * Reset parameters to default.
+- `def reset_filters(self) -> None`
+  * Reset all filters.
 - `def get_params(self) -> Dict[str, str]`
-- `def set_categories(self, general: Union[bool, str, int] = True, anime: Union[bool, str, int] = True, people: Union[bool, str, int] = True) -> None`
-- `def set_purity(self, sfw: Union[bool, str, int] = True, sketchy: Union[bool, str, int] = False, nsfw: Union[bool, str, int] = False) -> None`
+  * Return current parameters.
+- `def get_filters(self) -> Dict[str, Union[str, Dict[str, List[str]]]]`
+  * Return current filters.
+- `def set_categories(self, general: bool = True, anime: bool = True, people: bool = True) -> None`
+- `def set_purity(self, sfw: bool = True, sketchy: bool = False, nsfw: bool = False) -> None`
 - `def set_sorting(self, sorting: str = "Date Added") -> None`
 - `def set_range(self, top_range: str = "Last Month") -> None`
 - `def set_sorting_order(self, order: str = "Descending") -> None`
 - `def set_page(self, page_number: Union[str, int]) -> None`
-- `def set_search_query(self, query: str = "") -> None` 
+- `def set_search_query(self, query: str = "") -> None`
+- `def clear_search_query(self, include_filters: bool = False) -> None`
+  * Clear only the search query. May also clear filters.
+- `def include_tags(self, tags: List[str]) -> None`
+- `def exclude_tags(self, tags: List[str]) -> None`
+- `def filter_by_user(self, username: str) -> None`
+  * Only return wallpapers by this user.
