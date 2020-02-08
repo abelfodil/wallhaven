@@ -2,21 +2,20 @@ from typing import Union, Dict, List
 
 import requests
 
-from .exceptions import ApiKeyError, PageNotFoundError
+from .exceptions import ApiKeyError, PageNotFoundError, RequestLimitError
 from .params import Parameters
-from .utils.colors import RED, CLEAR
 
 
 class Wallhaven:
     """
-        A Python wrapper around the Wallhaven API.
+    A Python wrapper around the Wallhaven API.
 
-        Sample usage:
-        from wallhaven import Wallhaven
+    Sample usage:
+    from wallhaven import Wallhaven
 
-        wallhaven = Wallhaven()
-        data = wallhaven.get_wallpaper_info(wallpaper_id)
-        ...
+    wallhaven = Wallhaven()
+    data = wallhaven.get_wallpaper_info(wallpaper_id)
+    ...
     """
 
     BASE_URL = "https://wallhaven.cc/api/v1/"
@@ -29,62 +28,79 @@ class Wallhaven:
     def __init__(self, api_key=None):
         self.api_key = api_key
 
-    @staticmethod
-    def _request(url: str, **kwargs) -> requests.Response:
-        """
-            Perform a request at url.
+        self.session = None
 
-            :param url: Url.
-            :param **kwargs: Additional keyword arguments `requests` take.
+    def __enter__(self):
+        self.session = requests.Session()
+        return self
+
+    def __exit__(self, *args):
+        self.session.close()
+
+    def _request(self, url: str, **kwargs) -> requests.Response:
+        """
+        Perform a request at url.
+
+        :param url: Url.
+        :param **kwargs: Additional keyword arguments `requests` take.
         """
 
         # Use session for multiple requests to the same server.
         # It will speed up your requests.
-        # Using a context manager will automatically close the session.
-        with requests.Session() as session:
-            return session.get(url, **kwargs)
+
+        if self.session is not None:
+            return self.session.get(url, **kwargs)
+
+        # Use the normal way if there's no session.
+        return requests.get(url, **kwargs)
 
     def get_wallpaper_info(
         self, wallpaper_id: str
     ) -> Dict[str, Union[str, int, Dict[str, str], List[str], List[Dict[str, str]]]]:
         """
-            Return wallpaper metadata from `wallpaper_id`
+        Return wallpaper metadata from `wallpaper_id`
 
-            :param wallpaper_id: Wallpaper ID in a string format.
+        :param wallpaper_id: Wallpaper ID in a string format.
         """
         if not isinstance(wallpaper_id, str):
-            raise TypeError(f"{RED}Invalid type for argument 'wallpaper_id'{CLEAR}")
+            raise TypeError("Invalid type for argument 'wallpaper_id'")
 
         url = self.WALLPAPER_URL + str(wallpaper_id)
 
         # Request url.
         response = self._request(url, timeout=10)
 
+        if response.status_code == 429:
+            raise RequestLimitError("You've exceeded the request limit")
+
+        if response.status_code == 404:
+            raise PageNotFoundError("Wallpaper id doesn't exist.")
+
         # Unauthorized. API key is wrong or inexistent.
         # If user is unauthorized, they tried to access
         # something without an API key or the API key is not valid.
         if response.status_code == 401:
             if self.api_key is None:
-                raise ApiKeyError(f"{RED}Missing API key{CLEAR}")
-            raise ApiKeyError(f"{RED}Invalid API key{CLEAR}")
+                raise ApiKeyError("Missing API key")
+            raise ApiKeyError("Invalid API key")
 
         # Return data
         return response.json()["data"]
 
     def get_tag_info(self, tag_id: Union[str, int]) -> Dict[str, str]:
         """
-            Return tag metadata from `tag_id`.
+        Return tag metadata from `tag_id`.
 
-            :param tag_id: Tag id.
+        :param tag_id: Tag id.
         """
 
         # Only allow strings
         if not isinstance(tag_id, str) and not isinstance(tag_id, int):
-            raise TypeError(f"{RED}Invalid type for argument 'tag_id'{CLEAR}")
+            raise TypeError("Invalid type for argument 'tag_id'")
 
         tag_id = str(tag_id)
         if not tag_id.isnumeric():
-            raise ValueError(f"{RED}'tag_id' must be a numeric value{CLEAR}")
+            raise ValueError("'tag_id' must be a numeric value")
 
         # Format URL and make a request.
         url = self.TAG_URL + tag_id
@@ -92,19 +108,22 @@ class Wallhaven:
 
         # Tag ID doesn't exist.
         if response.status_code == 404:
-            raise PageNotFoundError(f"{RED}Tag not found{CLEAR}")
+            raise PageNotFoundError("Tag not found")
+
+        if response.status_code == 429:
+            raise RequestLimitError("You've exceeded the request limit")
 
         # Return data
         return response.json()["data"]
 
     def get_user_settings(self) -> Dict[str, Union[str, List[str]]]:
         """
-            Return user settings. A valid API key must be provided.
+        Return user settings. A valid API key must be provided.
         """
 
         # Check if API key exists.
         if self.api_key is None:
-            raise ApiKeyError(f"{RED}Missing API key{CLEAR}")
+            raise ApiKeyError("Missing API key")
 
         # Create params with only the API key.
         params = {"apikey": self.api_key}
@@ -114,7 +133,10 @@ class Wallhaven:
 
         # Page is not found if API key is INVALID.
         if response.status_code == 404:
-            raise ApiKeyError(f"{RED}Invalid API key{CLEAR}")
+            raise ApiKeyError("Invalid API key")
+
+        if response.status_code == 429:
+            raise RequestLimitError("You've exceeded the request limit")
 
         # Return data if no errors occurred.
         return response.json()["data"]
@@ -123,12 +145,12 @@ class Wallhaven:
         self, username: str
     ) -> List[Dict[str, Union[str, int]]]:
         """
-            Return user's public collection from `username`.
+        Return user's public collection from `username`.
 
-            :param username: Collection's owner.
+        :param username: Collection's owner.
         """
         if not isinstance(username, str):
-            raise TypeError(f"{RED}Invalid type for argument 'username'{CLEAR}")
+            raise TypeError("Invalid type for argument 'username'")
 
         # Format URL and make request.
         url = self.COLLECTIONS_URL + str(username)
@@ -136,19 +158,22 @@ class Wallhaven:
 
         # Invalid username.
         if response.status_code == 404:
-            raise PageNotFoundError(f"{RED}Invalid username{CLEAR}")
+            raise PageNotFoundError("Invalid username")
+
+        if response.status_code == 429:
+            raise RequestLimitError("You've exceeded the request limit")
 
         # Return data if no errors occurred.
         return response.json()["data"]
 
     def get_collections_from_apikey(self) -> List[Dict[str, Union[str, int]]]:
         """
-            Return user collection. A valid API key must be provided.
+        Return user collection. A valid API key must be provided.
         """
 
         # Check if API key exists.
         if self.api_key is None:
-            raise ApiKeyError(f"{RED}Missing API key{CLEAR}")
+            raise ApiKeyError("Missing API key")
 
         # Add key to `params`.
         params = {"apikey": self.api_key}
@@ -156,7 +181,10 @@ class Wallhaven:
 
         # Unauthorized if API key is not valid.
         if response.status_code == 401:
-            raise ApiKeyError(f"{RED}Invalid API key{CLEAR}")
+            raise ApiKeyError("Invalid API key")
+
+        if response.status_code == 429:
+            raise RequestLimitError("You've exceeded the request limit")
 
         # Return data if no errors occurred.
         return response.json()["data"]
@@ -165,25 +193,25 @@ class Wallhaven:
         self, username: str, collection_id: Union[int, str], limit: int = 0
     ) -> List[Dict[str, Union[str, List[str], Dict[str, str]]]]:
         """
-            Return wallpapers from a user's collection.
+        Return wallpapers from a user's collection.
 
-            :param username: Collections' Owner.
-            :param collection_id: Collection id.
-            :param limit. Limit the amount of wallpapers returned.
+        :param username: Collections' Owner.
+        :param collection_id: Collection id.
+        :param limit. Limit the amount of wallpapers returned.
         """
 
         if not isinstance(username, str):
-            raise TypeError(f"{RED}Invalid type for argument 'username'{CLEAR}")
+            raise TypeError("Invalid type for argument 'username'")
 
         if not isinstance(collection_id, int) and not isinstance(collection_id, str):
-            raise TypeError(f"{RED}Invalid type for argument 'collection_id'{CLEAR}")
+            raise TypeError("Invalid type for argument 'collection_id'")
 
         if not isinstance(limit, int):
-            raise TypeError(f"{RED}Invalid type for argument 'limit'{CLEAR}")
+            raise TypeError("Invalid type for argument 'limit'")
 
         collection_id = str(collection_id)
         if not collection_id.isnumeric():
-            raise ValueError(f"{RED}'collection_id' must be a numeric value!{CLEAR}")
+            raise ValueError("'collection_id' must be a numeric value!")
 
         # Format URL. Default page is 1.
         url = self.COLLECTIONS_URL + username + "/" + collection_id
@@ -191,7 +219,10 @@ class Wallhaven:
 
         # User not found;
         if response.status_code == 404:
-            raise PageNotFoundError(f"{RED}User not found{CLEAR}")
+            raise PageNotFoundError("User not found")
+
+        if response.status_code == 429:
+            raise RequestLimitError("You've exceeded the request limit")
 
         # Get list of wallpapers.
         data = response.json()["data"]
@@ -214,23 +245,37 @@ class Wallhaven:
         # Another list to store all wallpapers.
         wallpapers = data.copy()
         while True:
+            print("Looping..")
             # Meta has the total amount of pages needed to request all walls.
             # There are 24 wallpapers per page.
             # If page is 3 and `meta["last_page"]` is 2, there are no more pages.
-            if page > meta["last_page"]:
+            # This check is only useful when there's no limit.
+            if not limit and page > meta["last_page"]:
+                break
+
+            # Check if limit was reached.
+            if len(wallpapers) >= limit:
                 break
 
             # Request images and get data.
             # We know `data` is never going to be empty
             # because of the page check.
             response = self._request(url, timeout=10, params={"page": page})
+            if response.status_code == 429:
+                raise RequestLimitError("You've exceeded the request limit.")
+
             data = response.json()["data"]
 
             # Loops through data.
             for wall in data:
+                wallpapers.append(wall)
+
+                # Limit == 0
                 if not limit:
-                    wallpapers.append(wall)
-                elif len(wallpapers) >= limit:
+                    continue
+
+                # Check limit.
+                if len(wallpapers) >= limit:
                     break
 
             # Increment page.
@@ -243,16 +288,16 @@ class Wallhaven:
         self, parameters: Parameters
     ) -> List[Dict[str, Union[str, List[str], Dict[str, str]]]]:
         """
-            Search wallpapers using the defined parameters.
+        Search wallpapers using the defined parameters.
 
-            :param parameters: Parameters to filter wallpapers.
+        :param parameters: Parameters to filter wallpapers.
         """
 
         # Search only works with a dictionary of parameters.
 
         # Check if `parameters` is not a dict.
         if not isinstance(parameters, Parameters):
-            raise TypeError(f"{RED}Invalid type for argument 'parameters'")
+            raise TypeError("Invalid type for argument 'parameters'")
 
         # Get params.
         params = parameters.get_params()
@@ -263,6 +308,8 @@ class Wallhaven:
 
         # Make request.
         response = self._request(self.SEARCH_URL, params=params, timeout=10)
+        if response.status_code == 429:
+            raise RequestLimitError("You've exceeded the request limit.")
 
         # Return an empty list if API key is invalid (or missing)
         # and NSFW is set to True.

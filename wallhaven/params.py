@@ -2,7 +2,6 @@ import json
 from typing import Union, Dict, List
 
 from .utils.params import get_str_from_bool, make_query
-from .utils.colors import RED, CLEAR
 
 
 class Parameters:
@@ -37,7 +36,7 @@ class Parameters:
 
     def reset_params(self) -> None:
         """
-            Reset parameters to their default state
+        Reset parameters to their default state
         """
         self.params = {
             "categories": "111",
@@ -51,19 +50,19 @@ class Parameters:
 
     def reset_filters(self) -> None:
         """
-           Reset all filters chosen by the user
+        Reset all filters chosen by the user
         """
         self.filters.clear()
 
     def get_params(self) -> Dict[str, str]:
         """
-            Return the current parameters.
+        Return the current parameters.
         """
         return self.params
 
     def get_filters(self) -> Dict[str, Union[str, Dict[str, List[str]]]]:
         """
-           Return the current filters
+        Return the current filters
         """
         return self.filters
 
@@ -71,12 +70,12 @@ class Parameters:
         self, general: bool = True, anime: bool = True, people: bool = True,
     ) -> None:
         """
-            Turn categories on (True, "1", 1) or off (False, "0", 0).
-            At least 1 (one) category is needed.
+        Turn categories on (True, "1", 1) or off (False, "0", 0).
+        At least 1 (one) category is needed.
 
-            :param general: Includes general images. Neither anime nor people.
-            :param anime: Includes anime related images.
-            :param people: Includes images of people.
+        :param general: Includes general images. Neither anime nor people.
+        :param anime: Includes anime related images.
+        :param people: Includes images of people.
         """
 
         # Available categories.
@@ -85,7 +84,7 @@ class Parameters:
         # raise TypeError if category is not a boolean, a string, or an integer.
         for name, category in category_dict.items():
             if not isinstance(category, bool):
-                raise TypeError(f"{RED}Invalid type for argument '{category}'{CLEAR}")
+                raise TypeError(f"Invalid type for argument '{category}'")
 
         # Check if the user chose at least one category.
         if not any(category_dict.values()):
@@ -101,12 +100,12 @@ class Parameters:
         self, sfw: bool = True, sketchy: bool = False, nsfw: bool = False
     ) -> None:
         """
-            Turn purities on (True) or off (False).
-            At least 1 (one) purity is needed. NSFW requires a valid API key.
+        Turn purities on (True) or off (False).
+        At least 1 (one) purity is needed. NSFW requires a valid API key.
 
-            :param sfw: Includes safe-for-work images.
-            :param sketchy: Includes sketchy (not quite sfw not quite nsfw) images.
-            :param nsfw: Includes not-safe-for-work (mature) images.
+        :param sfw: Includes safe-for-work images.
+        :param sketchy: Includes sketchy (not quite sfw not quite nsfw) images.
+        :param nsfw: Includes not-safe-for-work (mature) images.
         """
 
         # Available purity.
@@ -115,11 +114,11 @@ class Parameters:
         # raise TypeError if purity is not a boolean, a string, or an integer.
         for name, purity in purity_dict.items():
             if not isinstance(purity, bool):
-                raise TypeError(f"{RED}Invalid type for argument '{name}'{CLEAR}")
+                raise TypeError(f"Invalid type for argument '{name}'")
 
         # Check if the user chose at least one purity.
         if not any(purity_dict.values()):
-            raise ValueError(f"{RED}At least one (1) purity must be included{CLEAR}")
+            raise ValueError("At least one (1) purity must be included")
 
         # Convert purity to "1" and "0".
         purity_string = get_str_from_bool(purity_dict.values())
@@ -129,22 +128,22 @@ class Parameters:
 
     def set_sorting(self, sorting: str = "Date Added") -> None:
         """
-            Set the method of sorting results.
+        Set the method of sorting results.
 
-            :param sorting: Sorting method.
+        :param sorting: Sorting method.
 
-            Available methods:
-            - Date Added
-            - Relevance (related to search query)
-            - Random
-            - Views
-            - Favorites
-            - Toplist
+        Available methods:
+        - Date Added
+        - Relevance (related to search query)
+        - Random
+        - Views
+        - Favorites
+        - Toplist
         """
 
         # Check if sorting is not a string.
         if not isinstance(sorting, str):
-            raise TypeError(f"{RED}Invalid type for argument 'sorting'{CLEAR}")
+            raise TypeError("Invalid type for argument 'sorting'")
 
         # List of available sortings.
         available_sortings = [
@@ -162,29 +161,29 @@ class Parameters:
 
         # Check for exact matches.
         if sorting not in available_sortings:
-            raise ValueError(f"{RED}{sorting} is not a valid option{CLEAR}")
+            raise ValueError(f"{sorting} is not a valid option")
 
         # Set sorting
         self.params["sorting"] = sorting
 
     def set_range(self, top_range: str = "Last Month") -> None:
         """
-            Set the time range. Sorting MUST be toplist for this to work.
+        Set the time range. Sorting MUST be toplist for this to work.
 
-            :param top_range: Range.
+        :param top_range: Range.
 
-            Available ranges:
-            - Last Day (or 1d)
-            - Last Three Days (or 3d)
-            - Last Week (or 1w)
-            - Last Month (or 1m)
-            - Last Three Months (3M)
-            - Last 6 Months (6M)
-            - Last Year (1y)
+        Available ranges:
+        - Last Day (or 1d)
+        - Last Three Days (or 3d)
+        - Last Week (or 1w)
+        - Last Month (or 1m)
+        - Last Three Months (3M)
+        - Last 6 Months (6M)
+        - Last Year (1y)
         """
 
         if not isinstance(top_range, str):
-            raise TypeError(f"{RED}Invalid type for argument 'top_range'{CLEAR}")
+            raise TypeError("Invalid type for argument 'top_range'")
 
         # Map ranges.
         # Values are case-sensitive.
@@ -212,21 +211,21 @@ class Parameters:
                 top_range = value
                 break
         else:
-            raise ValueError(f"{RED}{top_range} is not a valid option{CLEAR}")
+            raise ValueError(f"{top_range} is not a valid option")
 
         # Set range if range is valid.
         self.params["topRange"] = top_range
 
     def set_sorting_order(self, order: str = "Descending") -> None:
         """
-            Set the sorting order.
+        Set the sorting order.
 
-            :param order: Sorting order. Can be either Descending or Ascending.
+        :param order: Sorting order. Can be either Descending or Ascending.
         """
 
         # Check if order is not a string.
         if not isinstance(order, str):
-            raise TypeError(f"{RED}Invalid type for argument 'order'{CLEAR}")
+            raise TypeError("Invalid type for argument 'order'")
 
         # Map all possible orders.
         order_mapping = {"descending": "desc", "ascending": "asc"}
@@ -242,52 +241,52 @@ class Parameters:
                 order = value
                 break
         else:
-            raise ValueError(f"{RED}{order} is not a valid option for 'order'{CLEAR}")
+            raise ValueError(f"{order} is not a valid option for 'order'")
 
         # Set the order if nothing went wrong.
         self.params["order"] = order
 
     def set_page(self, page_number: Union[str, int] = "1") -> None:
         """
-            Defines what page number to request.
+        Defines what page number to request.
 
-            :param page_number: Page.
+        :param page_number: Page.
         """
 
         # Check `page_number` type.
         # 'page_number can only be of type str or int.
         if not isinstance(page_number, str) and not isinstance(page_number, int):
-            raise TypeError(f"{RED}Invalid type for argument 'page_number'{CLEAR}")
+            raise TypeError("Invalid type for argument 'page_number'")
 
         # Convert to string in case `page_number` is an integer.
         page = str(page_number)
         if not page.isnumeric():
-            raise TypeError(f"{RED}Page needs to be a numeric value{CLEAR}")
+            raise TypeError("Page needs to be a numeric value")
 
         # Set page.
         self.params["page"] = page_number
 
     def set_search_query(self, query: str = "") -> None:
         """
-            Set the search query in the parameters.
-            Can also be used to include filters.
-            Filter must be separated with spaces.
+        Set the search query in the parameters.
+        Can also be used to include filters.
+        Filter must be separated with spaces.
 
-            :param query: Search query.
+        :param query: Search query.
 
-            Current filters:
-            tagname (normal query) -> Search for a tag/keyword.
-            -tagname -> Exclude a tag/keyword.
-            +tag1 +tag2 -> Must have tag1 and tag2.
-            +tag1 -tag2 -> Must have tag1 and NOT tag2.
-            @username -> User uploads
-            id:123 -> Exact tag search
-            type:{png/jpg} -> Search for file type (jpg = jpeg)
-            like:<wallpaper-id> -> Find wallpaper with similar tags.
+        Current filters:
+        tagname (normal query) -> Search for a tag/keyword.
+        -tagname -> Exclude a tag/keyword.
+        +tag1 +tag2 -> Must have tag1 and tag2.
+        +tag1 -tag2 -> Must have tag1 and NOT tag2.
+        @username -> User uploads
+        id:123 -> Exact tag search
+        type:{png/jpg} -> Search for file type (jpg = jpeg)
+        like:<wallpaper-id> -> Find wallpaper with similar tags.
         """
 
         if not isinstance(query, str):
-            raise TypeError(f"{RED}Invalid type for argument 'query'{CLEAR}")
+            raise TypeError("Invalid type for argument 'query'")
 
         # Split words on spaces.
         # Loop through each word and try to check if there a filter involved.
@@ -330,7 +329,7 @@ class Parameters:
 
     def clear_search_query(self, clean_filters: bool = False) -> None:
         """
-            Clear search query. May also clear filters.
+        Clear search query. May also clear filters.
         """
 
         # Reset search query
@@ -343,18 +342,18 @@ class Parameters:
 
     def include_tags(self, tags: List[str]) -> None:
         """
-            Include tags. Only show images with matching tags.
+        Include tags. Only show images with matching tags.
 
-            :param tags: An iterable of tags.
+        :param tags: An iterable of tags.
         """
 
         # Check if `tags` is not an iterable (excluding strings).
         if not isinstance(tags, List):
-            raise TypeError(f"{RED}Invalid type for argument 'tags'{CLEAR}")
+            raise TypeError("Invalid type for argument 'tags'")
 
         # Check if `tags` if empty.
         if not tags:
-            raise ValueError(f"{RED}Can't find tags in: {tags}{CLEAR}")
+            raise ValueError(f"Can't find tags in: {tags}")
 
         # Add tags to filters.
         for tag in tags:
@@ -366,18 +365,18 @@ class Parameters:
 
     def exclude_tags(self, tags: List[str]) -> None:
         """
-            Exclude tags. Only show images with no matching tags.
+        Exclude tags. Only show images with no matching tags.
 
-            :param tags: An iterable of tags.
+        :param tags: An iterable of tags.
         """
 
         # Check if `tags` is not an iterable (excluding strings).
         if not isinstance(tags, List):
-            raise TypeError("{RED}Invalid type for argument 'tags'{CLEAR}")
+            raise TypeError("Invalid type for argument 'tags'")
 
         # Check if `tags` is empty.
         if not tags:
-            raise ValueError(f"{RED}Can't find tags in: {tags}{CLEAR}")
+            raise ValueError(f"Can't find tags in: {tags}")
 
         # Add tags to filters.
         for tag in tags:
@@ -389,18 +388,18 @@ class Parameters:
 
     def filter_by_user(self, username: str) -> None:
         """
-            Only returns images by `username`.
+        Only returns images by `username`.
 
-            :param username: Username
+        :param username: Username
         """
 
         # Check if `username` is not a string.
         if not isinstance(username, str):
-            raise TypeError(f"{RED}Invalid type for argument 'username'{CLEAR}")
+            raise TypeError("Invalid type for argument 'username'")
 
         # Check if `username` is only white spaces.
         if not username:
-            raise ValueError(f"{RED}Username cannot be blank{CLEAR}")
+            raise ValueError("Username cannot be blank")
 
         # Add filter
         self.filters["username"] = username
