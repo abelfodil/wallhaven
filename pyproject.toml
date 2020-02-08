@@ -17,8 +17,6 @@ python = "^3.6"
 requests = "^2.22.0"
 
 [tool.poetry.dev-dependencies]
-mypy = "^0.761"
-pylint = "^2.4.4"
 black = "^19.10b0"
 flake8 = "^3.7.9"
 
