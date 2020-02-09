@@ -1,3 +1,4 @@
+import time
 from typing import Union, Dict, List
 
 import requests
@@ -28,15 +29,6 @@ class Wallhaven:
     def __init__(self, api_key=None):
         self.api_key = api_key
 
-        self.session = None
-
-    def __enter__(self):
-        self.session = requests.Session()
-        return self
-
-    def __exit__(self, *args):
-        self.session.close()
-
     def _request(self, url: str, **kwargs) -> requests.Response:
         """
         Perform a request at url.
@@ -45,14 +37,14 @@ class Wallhaven:
         :param **kwargs: Additional keyword arguments `requests` take.
         """
 
-        # Use session for multiple requests to the same server.
-        # It will speed up your requests.
+        # Get response object
+        response = requests.get(url, **kwargs)
 
-        if self.session is not None:
-            return self.session.get(url, **kwargs)
+        # Stop execution for a little.
+        # This will help with the request limit.
+        time.sleep(0.5)
 
-        # Use the normal way if there's no session.
-        return requests.get(url, **kwargs)
+        return response
 
     def get_wallpaper_info(
         self, wallpaper_id: str
@@ -245,7 +237,6 @@ class Wallhaven:
         # Another list to store all wallpapers.
         wallpapers = data.copy()
         while True:
-            print("Looping..")
             # Meta has the total amount of pages needed to request all walls.
             # There are 24 wallpapers per page.
             # If page is 3 and `meta["last_page"]` is 2, there are no more pages.
