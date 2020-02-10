@@ -2,19 +2,59 @@
 
 A Python wrapper around the Wallhaven API.
 
-## Installation
+# Installation
 
-You can install it using pip
+## Using pip
 
-```
+```sh
 pip install wallhaven
 ```
 
-## Limits
+If you want to upgrade it, you can run
 
-According to the [official documentation](https://wallhaven.cc/help/api#limits), you can only make **45** requests per minute. An exception will be raised if you hit this limit.
+```sh
+pip install --upgrade wallhaven
+```
 
-## Usage
+## Building from source
+
+1. Install [poetry](https://python-poetry.org/).
+2. Clone the repository
+
+```sh
+git clone https://github.com/lucasshiva/wallhaven.git
+```
+
+3. Go inside it.
+
+```sh
+cd wallhaven/
+```
+
+4. Install `wallhaven` globally with poetry.
+
+```sh
+poetry install
+```
+
+Now, `wallhaven` is installed in editable mode on your system. This means that if you change something, it will be updated automatically.
+
+If you wish to install `wallhaven` locally, use poetry to create a virtual environment. Run these commands before using `poetry install`:
+
+```sh
+poetry env use <path_to_python>
+poetry shell
+poetry install
+```
+
+- Currently, `wallhaven` only works with Python 3.6 or greater.
+- You can learn more about Poetry [here](https://python-poetry.org/docs/).
+
+# Limits
+
+According to the [official documentation](https://wallhaven.cc/help/api#limits), you can only make **45** requests per minute. An exception will be raised if you hit this limit. If your requests are being made too fast, you'll hit the limit before actually reaching 45.
+
+# Usage
 
 ```python
 from wallhaven import Wallhaven
@@ -41,7 +81,7 @@ data = wallhaven.get_collection_from_username(username=username)
 data = wallhaven.get_collection_from_apikey()
 
 # Get wallpapers from a user's collection.
-# By default, this will return ALL wallpapers.
+# By default., this will return ALL wallpapers.
 # You can specify a limit.
 data = wallhaven.get_wallpapers_from_collection(username, collection_id, limit=25)
 ```
@@ -147,7 +187,7 @@ data = wallhaven.search(params=params)
 
 Each page contains 24 wallpapers.
 Search will return a list of dictionaries with the wallpapers' metadata.
-An empty list will be returned if no wallpapers are found.
+An empty list will be returned if no wallpapers were found.
 
 **Default parameters:**
 
@@ -162,25 +202,20 @@ For more information about the API, visit the [official documentation](https://w
 
 # Performance
 
-If you want, or need, to make multiple requests, use **_Wallhaven_** as a context manager. This will improve performance by a lot. Be aware of the _rate limit_.
+Performance is slowed down on purpose. This is to not overload the Wallhaven's server with requests. Currently, the program sleeps for 0.5 seconds after each request. Also, if you're requesting too fast you'll end up hitting the limit sooner.
+
+You can change the request timeout by:
 
 ```python
-from wallhaven import Wallhaven, Parameters
+from wallhaven import Wallhaven
 
-# Example parameters.
-params = Parameters()
-params.set_sorting("toplist")
-params.set_range("3d")
+wallhaven = Wallhaven()
 
-# Make requests inside
-with Wallhaven() as wallhaven:
-  # 1 request for the search.
-  data = wallhaven.search(params)
+# Calling the variable directly.
+wallhaven.REQUEST_TIMEOUT = <seconds>
 
-  for image in data:
-    # 1 request for each image inside data (24 images)
-    image_info = wallhaven.get_wallpaper_info(image["id"])
-    ...
+# Using a method.
+wallhaven.set_request_timeout(<seconds>)
 ```
 
 # Methods
@@ -189,6 +224,7 @@ with Wallhaven() as wallhaven:
 
 - `def __init__(self, api_key=None)`
 - `def _request(self, url, **kwargs) -> requests.Response`
+- `def set_request_timeout(self, time: Union[int, float]) -> None`
 - `def get_wallpaper_info(self, wallpaper_id: Union[str, int]) -> Dict[str, Union[str, int, Dict[str, str], List[str], List[Dict[str, str]]]]`
 - `def get_tag_info(self, tag_id: Union[str, int]) -> Dict[str, str]`
 - `def get_user_settings(self) -> Dict[str, Union[str, List[str]]]`
@@ -237,4 +273,4 @@ The following exceptions can be raised if something goes wrong:
   - Raised when the page is not found. Example: `get_wallpaper_info` is used with an ID that does not exist.
 
 - `RequestLimitError`
-  - Raised when the request limit is hit. Limit is **45** requests per minute.
+  - Raised when the request limit is hit. Limit is **45** requests per minute, or when requesting too fast.
