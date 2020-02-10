@@ -26,6 +26,8 @@ class Wallhaven:
     COLLECTIONS_URL = BASE_URL + "collections/"  # apikey or usename
     SEARCH_URL = BASE_URL + "search/"
 
+    REQUEST_TIMEOUT = 0.5
+
     def __init__(self, api_key=None):
         self.api_key = api_key
 
@@ -42,9 +44,12 @@ class Wallhaven:
 
         # Stop execution for a little.
         # This will help with the request limit.
-        time.sleep(0.5)
+        time.sleep(self.REQUEST_TIMEOUT)
 
         return response
+
+    def set_request_timeout(self, time: Union[int, float]) -> None:
+        self.REQUEST_TIMEOUT = time
 
     def get_wallpaper_info(
         self, wallpaper_id: str
