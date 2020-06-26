@@ -1,6 +1,9 @@
 # Wallhaven
 
-A Python wrapper around the Wallhaven API.
+A Python 3 wrapper around the Wallhaven API.
+
+# Disclaimer
+This project was built for learning purposes and breaking changes can be added at any time. 
 
 # Installation
 
