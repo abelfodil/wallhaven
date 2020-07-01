@@ -4,7 +4,7 @@ from typing import Union, Dict, List
 import requests
 
 from .exceptions import ApiKeyError, PageNotFoundError, RequestLimitError
-from .params import Parameters
+from .config import Parameters
 
 
 class Wallhaven:
