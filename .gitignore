@@ -1,14 +1,16 @@
 # Cache
-wallhaven/__pycache__
-wallhaven/.mypy_cache
-wallhaven/utils/__pycache__
+.mypy_cache/
+wallhaven/__pycache__/
+wallhaven/utils/__pycache__/
 
-# Personal Settings
+# Editor settings
 .vscode
 
-# Environments
+# Virtual environments
 .venv
+venv
 
-# Distribution Stuff
+# Distribution | Packaging
 dist/
-wallhaven.egg-info
+*.egg-info/
+*.egg
