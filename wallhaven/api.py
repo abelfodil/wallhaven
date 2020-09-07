@@ -1,168 +1,269 @@
-from typing import Union, List
+from typing import Union, List, Optional, Dict, Any
 
-from wallhaven.utils import request_url, get_url_for_route
+import requests
+
 from wallhaven.models import (
     Tag,
     Wallpaper,
     Settings,
     Collection,
     CollectionData,
+    SearchResults,
 )
+from wallhaven.exceptions import WallhavenException, APIException
 
 
-# TODO Logging.
-# TODO Maybe stop using `isinstance` to check types and just use try/except.
-
-
-def get_wallpaper_info(id: str) -> Wallpaper:
+class Api:
     """
-    Return wallpaper information.
+    An interface into the Wallhaven API.
 
-    :param id: Wallpaper ID, e.g "13vym3".
-    :rtype: Returns an instance of `wallhaven.models.Wallpaper`.
-    """
+    Args:
+        api_key (str, optional): A unique identifier to authenticate a wallhaven user.
+            You can get one at: https://wallhaven.cc/settings/account
+        timeout (int, optional): How long to wait for the server to send data
+            before giving up
 
-    if not isinstance(id, str):
-        raise TypeError(f"Expected type `str` for `id`. Got {type(id)}")
+    Usage:
+        import wallhaven
 
-    # Get the correct url.
-    url = get_url_for_route("wallpaper").format(id=id)
+        api = wallhaven.Api(api_key=KEY)
 
-    # Request API
-    response = request_url(url, timeout=10)
+        # Request a wallpaper.
+        wallpaper = api.get_wallpaper(id=ID)
 
-    # Get the raw data
-    data = response.json()["data"]
+        # Search for wallpapers.
+        result = api.search()
 
-    # Return an instance of Wallpaper.
-    return Wallpaper.from_data(data)
-
-
-def get_tag_info(id: Union[str, int]) -> Tag:
-    """
-    Return tag information
-
-    :param id: Tag ID as either an integer or a string.
-    :rtype: An instance of `wallhaven.models.Tag`.
+        for wall in result.data:
+            print(wall.id)
     """
 
-    if not isinstance(id, str) and not isinstance(id, int):
-        raise TypeError(f"Expected type `str` or `int` for id. Got {type(id)}")
+    def __init__(
+        self, api_key: Optional[str] = None, timeout: Optional[int] = None,
+    ):
+        self.timeout = timeout
+        self.api_key = api_key
 
-    # Get the correct url
-    url = get_url_for_route("tag").format(id=id)
+        self.base_url = "https://wallhaven.cc/api/v1"
 
-    # Request the API with a 10s timeout.
-    response = request_url(url, timeout=10)
+        # API key will be used as an URL parameter if it exists.
+        self.params: Dict[str, Any] = {}
 
-    data = response.json()["data"]
+        if self.api_key:
+            self.params = {"apikey": self.api_key}
 
-    return Tag.from_data(data)
+        self.session = requests.Session()
 
+    def _call(self, url: str, **kwargs) -> requests.Response:
+        """Internal call. Make a GET request to `url`.
 
-def get_user_settings(api_key: str) -> Settings:
-    """
-    Return user settings.
+        Args:
+            url (str): Web location to request.
+            kwargs (dict, optional): Optional arguments that `requests` takes.
 
-    :param api_key: An API key from Wallhaven.
-    :rtype: An instance of `wallhaven.models.Settings`.
-    """
+        Returns:
+            :class: requests.Response
+        """
+        response = self.session.get(url, timeout=self.timeout, **kwargs)
+        if not response.ok:
+            raise APIException(response.status_code)
 
-    # Only allows strings to be used as an API KEY.
-    if not isinstance(api_key, str):
-        raise TypeError(f"Expected type `str` for api_key. Got {type(api_key)}")
+        return response
 
-    # Doesn't allow empty strings though.
-    if not api_key:
-        raise ValueError("You need an API key to request user settings.")
+    @staticmethod
+    def _parse_response(
+        response: requests.Response, **kwargs
+    ) -> Union[List[Dict[str, Any]], Dict[str, Any]]:
+        """Try to parse the response as json.
 
-    # Get the url for settings.
-    url = get_url_for_route("settings")
+        Args:
+            response (requests.Response): Response object to parse.
+            kwargs (dict, optional): Optional arguments that `json.loads` takes.
 
-    # Make a request passing the URL as a parameter.
-    response = request_url(url, timeout=10, params={"apikey": api_key})
+        Raises:
+            WallhavenException: When the response body does not contain valid json.
 
-    # Get the settings data.
-    data = response.json()["data"]
+        Returns:
+            data (list, dict): A json object or an array of json objects.
+        """
+        try:
+            data = response.json(**kwargs)
+        except ValueError as e:
+            raise WallhavenException("Error parsing response: {}".format(e))
 
-    return Settings.from_data(data)
+        # If `meta` is not present, we only care about `data`.
+        if "meta" not in data:
+            return data["data"]
 
+        # Add final url to metadata. This will probably be needed in the future.
+        data["meta"]["url"] = response.url
 
-def get_user_collections_from_apikey(api_key: str) -> List[Collection]:
-    """
-    Return all (public and private) collections from an user.
+        # Add params to
 
-    :param api_key: The API key provided by Wallhaven.
-    :rtype: A list of `wallhaven.models.Collection`.
-    """
+        return data
 
-    # Get the correct url.
-    url = get_url_for_route("collections_apikey")
+    def get_wallpaper(
+        self, id: str, as_json: bool = False
+    ) -> Union[Wallpaper, Dict[str, Any]]:
+        """Return wallpaper metadata from `id`.
 
-    # Make a request passing the API key as a parameter.
-    response = request_url(url, timeout=10, params={"apikey": api_key})
+        Args:
+            id (str): Wallpaper ID, e.g "13vym3".
+            as_json (bool): Whether or not to return data as json.
 
-    # Get the data
-    data = response.json()["data"]
+        Raises:
+            APIException: For HTTP errors 401, 404 and 429.
 
-    # Return a list with all the collections.
-    return [Collection.from_data(collection) for collection in data]
+        Returns:
+            An instance of `wallhaven.models.Wallpaper` or a json object.
+        """
+        url = self.base_url + "/w/" + id
 
+        # API key is needed for NSFW wallpapers.
+        response = self._call(url, params=self.params)
+        json_data = self._parse_response(response)
 
-def get_user_collections_from_username(username: str) -> List[Collection]:
-    """
-    Return only the user's public collections.
+        return json_data if as_json else Wallpaper.new_from_dict(json_data)
 
-    :param username: Wallhaven username.
-    :rtype: A list of `wallhaven.models.Collection`.
-    """
-    if not isinstance(username, str):
-        raise TypeError(f"Expected type `str` for username. Got {type(username)}")
+    def get_tag(
+        self, id: Union[str, int], as_json: bool = False
+    ) -> Union[Tag, Dict[str, Any]]:
+        """Return tag metadata from `id`.
 
-    url = get_url_for_route("collections_username").format(username=username)
+        Args:
+            id (int, str): Tag ID, e.g 123 or '123'.
+            as_json (bool): Whether or not to return data as json.
 
-    response = request_url(url, timeout=10)
+        Raises:
+            APIException: For HTTP errors 401, 404 and 429.
 
-    data = response.json()["data"]
+        Returns:
+            An instance of `wallhaven.models.Tag` or a json object.
+        """
+        url = self.base_url + "/tag/" + str(id)
 
-    # Return a list with all the user's public collections.
-    return [Collection.from_data(collection) for collection in data]
+        # API key is not needed even for NSFW tags.
+        response = self._call(url)
+        json_data = self._parse_response(response)
 
+        return json_data if as_json else Tag.new_from_dict(json_data)
 
-def get_collection_data(
-    username: str, collection_id: Union[int, str]
-) -> CollectionData:
-    """
-    Return data from an user's collection. This includes wallpapers and 
-    metadata for pagination.
+    def get_user_settings(
+        self, as_json: bool = False
+    ) -> Union[Settings, Dict[str, Any]]:
+        """
+        Return user settings from `api_key`.
 
-    :param username: Collection's owner username.
-    :param collection: Collection id.
-    :rtype: An instance of `wallhaven.models.CollectionData`.
-    """
-    if not isinstance(username, str):
-        raise TypeError(f"Expected type `str` for username. Got {type(username)}")
+        Args:
+            as_json (bool): Whether or not to return data as json.
 
-    if not isinstance(collection_id, str) and not isinstance(collection_id, int):
-        raise TypeError(
-            f"Expected type `str` or `int` for collection_id. Got {type(collection_id)}"
+        Raises:
+            WallhavenException: If API key is non-existent.
+            APIException: For HTTP errors 401, 404 and 429.
+
+        Returns:
+            An instance of `wallhaven.models.Settings` or a json object.
+        """
+        if not self.api_key:
+            raise WallhavenException("You need an API key to continue this operation.")
+
+        url = self.base_url + "/settings"
+        response = self._call(url, params=self.params)
+        json_data = self._parse_response(response)
+
+        return json_data if as_json else Settings.new_from_dict(json_data)
+
+    def get_collections_from_apikey(
+        self, as_json: bool = False
+    ) -> Union[List[Collection], Dict[str, Any]]:
+        """
+        Return all (public and private) collections from an user.
+
+        Args:
+            as_json (bool): Whether or not to return data as json.
+
+        Raises:
+            WallhavenException: If API key is non-existent.
+            APIException: For HTTP errors 401, 404 and 429.
+
+        Returns:
+            A list of `wallhaven.models.Collection` instances or a list of json objects.
+        """
+        if not self.api_key:
+            raise WallhavenException("You need an API key to continue this operation.")
+
+        url = self.base_url + "/collections"
+        response = self._call(url, params=self.params)
+        json_data = self._parse_response(response)
+
+        return (
+            json_data if as_json else [Collection.new_from_dict(c) for c in json_data]
         )
 
-    # Get the correct url
-    url = get_url_for_route("collection_wallpapers").format(
-        username=username, id=collection_id
-    )
+    def get_collections_from_username(
+        self, username: str, as_json: bool = False
+    ) -> Union[List[Collection], Dict[str, Any]]:
+        """Return onlu public collections from an user.
 
-    # Make a request
-    response = request_url(url, timeout=10)
+        Args:
+            username (str): Username from Wallhaven
+            as_json (bool): Whether or not to return data as json.
 
-    # Get data. This time we don't access the 'data' key because
-    # we will also need the 'meta' key for pagination information.
-    data = response.json()
+        Raises:
+            APIException: For HTTP errors 401, 404 and 429.
 
-    # Add missing information to data. The user will be able to use
-    # this url for pagination.
-    # TODO Maybe create a class that handles pagination?
-    data["meta"]["url"] = url
+        Returns:
+            A list of `wallhaven.models.Collection` instances or a list of json objects.
+        """
+        url = self.base_url + "/collections/" + username
 
-    return CollectionData.from_data(data)
+        response = self._call(url)
+        json_data = self._parse_response(response)
+
+        return (
+            json_data if as_json else [Collection.new_from_dict(c) for c in json_data]
+        )
+
+    def get_collection_data(
+        self, username: str, collection_id: Union[str, int], as_json: bool = False
+    ) -> Union[CollectionData, Dict[str, Any]]:
+        """Return collection metadata, i.e wallpapers and metadata for pagination.
+
+        Args:
+            username (str): Username from Wallhaven
+            collection_id (str, int): The collection id.
+            as_json (bool): Whether or not to return data as json.
+
+        Raises:
+            APIException: For HTTP errors 401, 404 and 429.
+
+        Returns:
+            An instance of `wallhaven.models.CollectionData` or a json object
+        """
+        url = self.base_url + "/collections/" + username + "/" + str(collection_id)
+        response = self._call(url)
+        json_data = self._parse_response(response)
+
+        return json_data if as_json else CollectionData.new_from_dict(json_data)
+
+    def search(self, as_json: bool = False) -> Union[SearchResults, Dict[str, Any]]:
+        """Search for wallpapers. If an API key is provided, searches will be performed
+        with that user's browsing settings and default filters.
+
+        With no additional parameters the search will display the latest SFW wallpapers.
+        See: https://wallhaven.cc/help/api for more information on default parameters.
+
+        Args:
+            as_json (bool): Whether or not to return data as json.
+
+        Raises:
+            APIException: For HTTP errors 401, 404 and 429.
+
+        Returns:
+            An instance of `wallhaven.models.SearchResults` or a json dictionary.
+        """
+        url = self.base_url + "/search"
+        response = self._call(url)
+        json_data = self._parse_response(response)
+
+        return json_data if as_json else SearchResults.new_from_dict(json_data)
