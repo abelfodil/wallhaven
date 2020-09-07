@@ -1,7 +1,6 @@
 # Cache
 .mypy_cache/
-wallhaven/__pycache__/
-wallhaven/utils/__pycache__/
+**/__pycache__
 
 # Editor settings
 .vscode
