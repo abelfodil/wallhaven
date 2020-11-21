@@ -16,9 +16,9 @@ def make_query(filters: Dict) -> str:
         query += "id:" + filters["id"]
     else:
         for tag in filters["tags"]["excluded"]:
-            query += "-" + tag
+            query += " -" + tag
         for tag in filters["tags"]["included"]:
-            query += "+" + tag
+            query += " +" + tag
 
     # Check keyword
     if filters["keyword"]:
